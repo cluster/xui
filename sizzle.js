@@ -12,6 +12,10 @@ var chunker = /((?:\((?:\([^()]+\)|[^()]+)+\)|\[(?:\[[^[\]]*\]|['"][^'"]*['"]|[^
 	hasDuplicate = false,
 	baseHasDuplicate = true;
 
+// Here we check if the JavaScript engine is using some sort of
+// optimization where it does not always call our comparision
+// function. If that is the case, discard the hasDuplicate value.
+//   Thus far that includes Google Chrome.
 [0, 0].sort(function(){
 	baseHasDuplicate = false;
 	return 0;
@@ -24,31 +28,30 @@ var Sizzle = function(selector, context, results, seed) {
 	if ( context.nodeType !== 1 && context.nodeType !== 9 ) {
 		return [];
 	}
-
+	
 	if ( !selector || typeof selector !== "string" ) {
 		return results;
 	}
 
 	var parts = [], m, set, checkSet, extra, prune = true, contextXML = isXML(context),
 		soFar = selector;
-
+	
+	// Reset the position of the chunker regexp (start from head)
 	while ( (chunker.exec(""), m = chunker.exec(soFar)) !== null ) {
-		
 		soFar = m[3];
-
+		
 		parts.push( m[1] );
-
+		
 		if ( m[2] ) {
 			extra = m[3];
 			break;
 		}
 	}
+
 	if ( parts.length > 1 && origPOS.exec( selector ) ) {
 		if ( parts.length === 2 && Expr.relative[ parts[0] ] ) {
-			
 			set = posProcess( parts[0] + parts[1], context );
 		} else {
-			
 			set = Expr.relative[ parts[0] ] ?
 				[ context ] :
 				Sizzle( parts.shift(), context );
@@ -59,11 +62,13 @@ var Sizzle = function(selector, context, results, seed) {
 				if ( Expr.relative[ selector ] ) {
 					selector += parts.shift();
 				}
-
+				
 				set = posProcess( selector, set );
 			}
 		}
-	} else { 
+	} else {
+		// Take a shortcut and set the context if the root selector is an ID
+		// (but not if it'll be faster if the inner selector is an ID)
 		if ( !seed && parts.length > 1 && context.nodeType === 9 && !contextXML &&
 				Expr.match.ID.test(parts[0]) && !Expr.match.ID.test(parts[parts.length - 1]) ) {
 			var ret = Sizzle.find( parts.shift(), context, contextXML );
@@ -71,13 +76,10 @@ var Sizzle = function(selector, context, results, seed) {
 		}
 
 		if ( context ) {
-	
 			var ret = seed ?
 				{ expr: parts.pop(), set: makeArray(seed) } :
 				Sizzle.find( parts.pop(), parts.length === 1 && (parts[0] === "~" || parts[0] === "+") && context.parentNode ? context.parentNode : context, contextXML );
-			
 			set = ret.expr ? Sizzle.filter( ret.expr, ret.set ) : ret.set;
-
 
 			if ( parts.length > 0 ) {
 				checkSet = makeArray(set);
@@ -171,7 +173,7 @@ Sizzle.find = function(expr, context, isXML){
 
 	for ( var i = 0, l = Expr.order.length; i < l; i++ ) {
 		var type = Expr.order[i], match;
-
+		
 		if ( (match = Expr.leftMatch[ type ].exec( expr )) ) {
 			var left = match[1];
 			match.splice(1,1);
@@ -260,6 +262,7 @@ Sizzle.filter = function(expr, set, inplace, not){
 			}
 		}
 
+		// Improper expression
 		if ( expr === old ) {
 			if ( anyFound == null ) {
 				Sizzle.error( expr );
@@ -427,21 +430,24 @@ var Expr = Sizzle.selectors = {
 		},
 		CHILD: function(match){
 			if ( match[1] === "nth" ) {
+				// parse equations like 'even', 'odd', '5', '2n', '3n+2', '4n-1', '-n+6'
 				var test = /(-?)(\d*)n((?:\+|-)?\d*)/.exec(
 					match[2] === "even" && "2n" || match[2] === "odd" && "2n+1" ||
 					!/\D/.test( match[2] ) && "0n+" + match[2] || match[2]);
 
+				// calculate the numbers (first)n+(last) including if they are negative
 				match[2] = (test[1] + (test[2] || 1)) - 0;
 				match[3] = test[3] - 0;
 			}
 
+			// TODO: Move to normal caching system
 			match[0] = done++;
 
 			return match;
 		},
 		ATTR: function(match, curLoop, inplace, result, not, isXML){
 			var name = match[1].replace(/\\/g, "");
-
+			
 			if ( !isXML && Expr.attrMap[name] ) {
 				match[1] = Expr.attrMap[name];
 			}
@@ -454,6 +460,7 @@ var Expr = Sizzle.selectors = {
 		},
 		PSEUDO: function(match, curLoop, inplace, result, not){
 			if ( match[1] === "not" ) {
+				// If we're dealing with a complex expression, or a simple one
 				if ( ( chunker.exec(match[3]) || "" ).length > 1 || /^\w/.test(match[3]) ) {
 					match[3] = Sizzle(match[3], null, null, curLoop);
 				} else {
@@ -466,7 +473,7 @@ var Expr = Sizzle.selectors = {
 			} else if ( Expr.match.POS.test( match[0] ) || Expr.match.CHILD.test( match[0] ) ) {
 				return true;
 			}
-
+			
 			return match;
 		},
 		POS: function(match){
@@ -485,6 +492,8 @@ var Expr = Sizzle.selectors = {
 			return elem.checked === true;
 		},
 		selected: function(elem){
+			// Accessing this property makes selected-by-default
+			// options in Safari work properly
 			elem.parentNode.selectedIndex;
 			return elem.selected === true;
 		},
@@ -585,18 +594,18 @@ var Expr = Sizzle.selectors = {
 				case 'only':
 				case 'first':
 					while ( (node = node.previousSibling) )	 {
-						if ( node.nodeType === 1 ) {
-							return false;
+						if ( node.nodeType === 1 ) { 
+							return false; 
 						}
 					}
-					if ( type === "first" ) {
-						return true;
+					if ( type === "first" ) { 
+						return true; 
 					}
 					node = elem;
 				case 'last':
 					while ( (node = node.nextSibling) )	 {
-						if ( node.nodeType === 1 ) {
-							return false;
+						if ( node.nodeType === 1 ) { 
+							return false; 
 						}
 					}
 					return true;
@@ -606,20 +615,20 @@ var Expr = Sizzle.selectors = {
 					if ( first === 1 && last === 0 ) {
 						return true;
 					}
-
+					
 					var doneName = match[0],
 						parent = elem.parentNode;
-
+	
 					if ( parent && (parent.sizcache !== doneName || !elem.nodeIndex) ) {
 						var count = 0;
 						for ( node = parent.firstChild; node; node = node.nextSibling ) {
 							if ( node.nodeType === 1 ) {
 								node.nodeIndex = ++count;
 							}
-						}
+						} 
 						parent.sizcache = doneName;
 					}
-
+					
 					var diff = elem.nodeIndex - last;
 					if ( first === 0 ) {
 						return diff === 0;
@@ -689,24 +698,24 @@ for ( var type in Expr.match ) {
 }
 
 var makeArray = function(array, results) {
-	//need to be modified for blackberry compatibility... as BB browser doesn't fully support the Array.prototype.slice.call function
-var testArray = array;
-array = Array.prototype.slice.call( testArray, 0 );
-for (var i=0;i<testArray.length;i++) 
-		array[i]=testArray[i];
-		
+	array = Array.prototype.slice.call( array, 0 );
 
 	if ( results ) {
 		results.push.apply( results, array );
 		return results;
 	}
-
+	
 	return array;
 };
 
+// Perform a simple check to determine if the browser is capable of
+// converting a NodeList to an array using builtin methods.
+// Also verifies that the returned array holds DOM nodes
+// (which is not the case in the Blackberry browser)
 try {
-	Array.prototype.slice.call( document.documentElement.childNodes, 0 );
+	Array.prototype.slice.call( document.documentElement.childNodes, 0 )[0].nodeType;
 
+// Provide a fallback method if it does not work
 } catch(e){
 	makeArray = function(array, results) {
 		var ret = results || [];
@@ -783,15 +792,18 @@ if ( document.documentElement.compareDocumentPosition ) {
 	};
 }
 
+// Utility function for retreiving the text value of an array of DOM nodes
 function getText( elems ) {
 	var ret = "", elem;
 
 	for ( var i = 0; elems[i]; i++ ) {
 		elem = elems[i];
 
+		// Get the text from text nodes and CDATA nodes
 		if ( elem.nodeType === 3 || elem.nodeType === 4 ) {
 			ret += elem.nodeValue;
 
+		// Traverse everything else, except comment nodes
 		} else if ( elem.nodeType !== 8 ) {
 			ret += getText( elem.childNodes );
 		}
@@ -800,14 +812,20 @@ function getText( elems ) {
 	return ret;
 }
 
+// Check to see if the browser returns elements by name when
+// querying by getElementById (and provide a workaround)
 (function(){
+	// We're going to inject a fake input element with a specified name
 	var form = document.createElement("div"),
 		id = "script" + (new Date).getTime();
 	form.innerHTML = "<a name='" + id + "'/>";
 
+	// Inject it into the root element, check its status, and remove it quickly
 	var root = document.documentElement;
 	root.insertBefore( form, root.firstChild );
 
+	// The workaround has to do additional checks after a getElementById
+	// Which slows things down for other browsers (hence the branching)
 	if ( document.getElementById( id ) ) {
 		Expr.find.ID = function(match, context, isXML){
 			if ( typeof context.getElementById !== "undefined" && !isXML ) {
@@ -827,13 +845,19 @@ function getText( elems ) {
 })();
 
 (function(){
+	// Check to see if the browser returns only elements
+	// when doing getElementsByTagName("*")
 
+	// Create a fake element
 	var div = document.createElement("div");
 	div.appendChild( document.createComment("") );
+
+	// Make sure no comments are found
 	if ( div.getElementsByTagName("*").length > 0 ) {
 		Expr.find.TAG = function(match, context){
 			var results = context.getElementsByTagName(match[1]);
 
+			// Filter out possible comments
 			if ( match[1] === "*" ) {
 				var tmp = [];
 
@@ -849,6 +873,8 @@ function getText( elems ) {
 			return results;
 		};
 	}
+
+	// Check to see if an attribute returns normalized href attributes
 	div.innerHTML = "<a href='#'></a>";
 	if ( div.firstChild && typeof div.firstChild.getAttribute !== "undefined" &&
 			div.firstChild.getAttribute("href") !== "#" ) {
@@ -865,19 +891,23 @@ if ( document.querySelectorAll ) {
 		var oldSizzle = Sizzle, div = document.createElement("div");
 		div.innerHTML = "<p class='TEST'></p>";
 
+		// Safari can't handle uppercase or unicode characters when
+		// in quirks mode.
 		if ( div.querySelectorAll && div.querySelectorAll(".TEST").length === 0 ) {
 			return;
 		}
-
+	
 		Sizzle = function(query, context, extra, seed){
 			context = context || document;
 
+			// Only use querySelectorAll on non-XML documents
+			// (ID selectors don't work in non-HTML documents)
 			if ( !seed && context.nodeType === 9 && !isXML(context) ) {
 				try {
 					return makeArray( context.querySelectorAll(query), extra );
 				} catch(e){}
 			}
-
+		
 			return oldSizzle(query, context, extra, seed);
 		};
 
@@ -894,16 +924,19 @@ if ( document.querySelectorAll ) {
 
 	div.innerHTML = "<div class='test e'></div><div class='test'></div>";
 
+	// Opera can't find a second classname (in 9.6)
+	// Also, make sure that getElementsByClassName actually exists
 	if ( !div.getElementsByClassName || div.getElementsByClassName("e").length === 0 ) {
 		return;
 	}
 
+	// Safari caches class attributes, doesn't catch changes (in 3.2)
 	div.lastChild.className = "e";
 
 	if ( div.getElementsByClassName("e").length === 1 ) {
 		return;
 	}
-
+	
 	Expr.order.splice(1, 0, "CLASS");
 	Expr.find.CLASS = function(match, context, isXML) {
 		if ( typeof context.getElementsByClassName !== "undefined" && !isXML ) {
@@ -990,6 +1023,8 @@ var contains = document.compareDocumentPosition ? function(a, b){
 };
 
 var isXML = function(elem){
+	// documentElement is verified for cases where it doesn't yet exist
+	// (such as loading iframes in IE - #4833) 
 	var documentElement = (elem ? elem.ownerDocument || elem : 0).documentElement;
 	return documentElement ? documentElement.nodeName !== "HTML" : false;
 };
@@ -998,6 +1033,8 @@ var posProcess = function(selector, context){
 	var tmpSet = [], later = "", match,
 		root = context.nodeType ? [context] : context;
 
+	// Position selectors must be done after the filter
+	// And so must :not(positional) so we move all PSEUDOs to the end
 	while ( (match = Expr.match.PSEUDO.exec( selector )) ) {
 		later += match[0];
 		selector = selector.replace( Expr.match.PSEUDO, "" );
@@ -1008,9 +1045,11 @@ var posProcess = function(selector, context){
 	for ( var i = 0, l = root.length; i < l; i++ ) {
 		Sizzle( selector, root[i], tmpSet );
 	}
+
 	return Sizzle.filter( later, tmpSet );
 };
 
+// EXPOSE
 
 window.Sizzle = Sizzle;
 
