@@ -182,7 +182,8 @@ xui.extend({
                 if (n.nodeType == 3 && !ns.test(n.nodeValue)) {
                     d.removeChild(n);
                 } else {
-                    n.nodeIndex = ++ni;
+					if(nx!=null && nx.data!=null)
+						n.nodeIndex = ++ni;
                 }
                 n = nx;
             }

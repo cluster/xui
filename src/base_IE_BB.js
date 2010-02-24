@@ -59,7 +59,7 @@ xui.fn = xui.prototype = {
                 ele = [context.getElementById(q.substr(1))];
             } else if (typeof q == string) {
                 // one selector
-                ele = slice.call(context.querySelectorAll(q));
+                ele = slice.call(Sizzle(q));
             } else if (q.toString() === '[object Array]') {
                 ele = q;
             } else {
@@ -93,7 +93,7 @@ xui.fn = xui.prototype = {
           var a = [], elements = elements || slice.call(this);
           elements.forEach(function (el) {
             // question the support of [].indexOf in older mobiles (RS will bring up 5800 to test)
-            if (a.indexOf(el, 0, b) < 0)
+            if (a.indexOf(el, 0) < 0)
                 a.push(el);            
           });
 

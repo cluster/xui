@@ -67,10 +67,26 @@ xui.extend({
 	 */
 	 
 	on: function(type, fn) {
-	  return this.each(function (el) {
-      el.addEventListener(type, _createResponder(el, type, fn), false);
-	  });
-	},
+		if (window.addEventListener) { 
+		  return this.each(function (el) {
+		  el.addEventListener(type, _createResponder(el, type, fn), false);
+		  });
+		  } else { //very sad way to do this... still looking for better alternative...
+				return this.each(function(el) {
+					switch (type) {
+						case "keyup" :
+							el.onkeyup=fn;
+						case "click" :
+							el.onclick=fn;
+						case "touchmove" :
+							el.touchmove=fn;
+						case "load" :
+							el.onload=fn;
+					}//need complement...
+				});
+			}
+		},
+
 	
 	un: function(type) {
 	  var that = this;
