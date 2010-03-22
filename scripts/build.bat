@@ -1,0 +1,8 @@
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ Blackberry\app_BB.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ Blackberry\app_BB_min.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ InternetExplorer\app_IE.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ InternetExplorer\app_IE_min.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ iPhone-Android\app_iPhone-Android.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ iPhone-Android\app_iPhone-Android_min.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ Nokia\app_Nokia.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ Nokia\app_Nokia_min.build.js

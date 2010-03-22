@@ -109,7 +109,8 @@ xui.extend({
             html = location;
             location = 'inner';
         }
-
+		
+		var string = new String('string');
         this.each(function(el) {
             switch (location) {
             case "inner":

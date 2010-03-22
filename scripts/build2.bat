@@ -1,0 +1,2 @@
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ InternetExplorer\app_IE.build.js
+java -classpath ..\requirejs\build\lib\rhino\js.jar;..\requirejs\build\lib\closure\compiler.jar org.mozilla.javascript.tools.shell.Main ..\requirejs\build\build.js ..\requirejs\build\ InternetExplorer\app_IE_min.build.js
