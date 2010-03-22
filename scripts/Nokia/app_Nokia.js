@@ -1,5 +1,5 @@
-require(["../../src/split", 
-		"../../src/base", 
+require(["../../src/sizzle", 
+		"../../src/base_IE_BB", 
 		"../../src/core/style", 
 		"../../src/core/event", 
 		"../../src/core/dom", 
