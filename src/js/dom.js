@@ -52,14 +52,20 @@ xui.extend({
             html = location;
             location = 'inner';
         }
-
+        if (html.each !== undefined) {
+            var that = this;
+            html.each(function(el){
+                that.html(location, el);
+            });
+            return this;
+        }
         return this.each(function(el) {
             var parent, 
                 list, 
                 len, 
                 i = 0;
-            if (location == "inner") {
-                if (typeof html == string) {
+            if (location == "inner") { // .html
+                if (typeof html == string || typeof html == "number") {
                     el.innerHTML = html;
                     list = el.getElementsByTagName('SCRIPT');
                     len = list.length;
@@ -70,28 +76,20 @@ xui.extend({
                     el.innerHTML = '';
                     el.appendChild(html);
                 }
-            } else if (location == "outer") {
+            } else if (location == "outer") { // .replaceWith
                 el.parentNode.replaceChild(wrapHelper(html, el), el);
-            } else if (location == "top") {
+            } else if (location == "top") { // .prependTo
                 el.insertBefore(wrapHelper(html, el), el.firstChild);
-            } else if (location == "bottom") {
+            } else if (location == "bottom") { // .appendTo
                 el.insertBefore(wrapHelper(html, el), null);
             } else if (location == "remove") {
                 el.parentNode.removeChild(el);
-            } else if (location == "before") {
+            } else if (location == "before") { // .insertBefore
                 el.parentNode.insertBefore(wrapHelper(html, el.parentNode), el);
-            } else if (location == "after") {
+            } else if (location == "after") { // .insertAfter
                 el.parentNode.insertBefore(wrapHelper(html, el.parentNode), el.nextSibling);
             }
         });
-    },
-    
-    append: function (html) {
-        return this.html(html, 'bottom');
-    },
-    
-    prepend: function (html) {
-      return this.html(html, 'top');
     },
 
     /**
@@ -101,7 +99,7 @@ xui.extend({
     attr: function(attribute, val) {
         if (arguments.length == 2) {
             return this.each(function(el) {
-                el.setAttribute(attribute, val);
+                (attribute=='checked'&&(val==''||val==false||typeof val=="undefined"))?el.removeAttribute(attribute):el.setAttribute(attribute, val);
             });
         } else {
             var attrs = [];
@@ -115,7 +113,9 @@ xui.extend({
     }
 // --
 });
-
+"inner outer top bottom remove before after".split(' ').forEach(function (method) {
+  xui.fn[method] = function(where) { return function (html) { return this.html(where, html); }; }(method);
+});
 // private method for finding a dom element
 function getTag(el) {
     return (el.firstChild === null) ? {'UL':'LI','DL':'DT','TR':'TD'}[el.tagName] || el.tagName : el.firstChild.tagName;
@@ -131,14 +131,15 @@ function wrapHelper(html, el) {
 function wrap(xhtml, tag) {
 
     var attributes = {},
-        re = /^<([A-Z][A-Z0-9]*)([^>]*)>(.*)<\/\1>/i,
+        re = /^<([A-Z][A-Z0-9]*)([^>]*)>([\s\S]*)<\/\1>/i,
         element,
         x,
         a,
         i = 0,
         attr,
         node,
-        attrList;
+        attrList,
+        result;
         
     if (re.test(xhtml)) {
         result = re.exec(xhtml);

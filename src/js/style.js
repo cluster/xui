@@ -49,6 +49,7 @@ xui.extend({
 	 * 
 	 */
     setStyle: function(prop, val) {
+        prop = prop.replace(/\-[a-z]/g,function(m) { return m[1].toUpperCase(); });
         return this.each(function(el) {
             el.style[prop] = val;
         });
@@ -82,12 +83,19 @@ xui.extend({
 	 *
 	 */
     getStyle: function(prop, callback) {
+        // shortcut getComputedStyle function
+        var s = function(el, p) {
+            // this *can* be written to be smaller - see below, but in fact it doesn't compress in gzip as well, the commented
+            // out version actually *adds* 2 bytes.
+            // return document.defaultView.getComputedStyle(el, "").getPropertyValue(p.replace(/([A-Z])/g, "-$1").toLowerCase());
+            return document.defaultView.getComputedStyle(el, "").getPropertyValue(p.replace(/[A-Z]/g, function(m) { return '-'+m.toLowerCase(); }));
+        }
         return (callback === undefined) ?
-            
-            getStyle(this[0], prop) :
+        
+            s(this[0], prop) :
             
             this.each(function(el) {
-                callback(getStyle(el, prop));
+                callback(s(el, prop));
             });
     },
 
@@ -123,7 +131,7 @@ xui.extend({
     },
     /**
 	 *
-	 * Checks to see if classname is one the element. If a callback isn't passed, hasClass expects only one element in collection
+	 * Checks to see if classname is one the element. If a callback isn't passed, hasClass expects only one element in collection - but should it?
 	 * 
 	 * @param {String} className The class name.
 	 * @param {Function} callback A callback function (optional)
@@ -148,13 +156,17 @@ xui.extend({
 	 *
 	 */
     hasClass: function(className, callback) {
-        return (callback === undefined && this.length == 1) ?
-            hasClass(this[0], className) :
-            this.each(function(el) {
-                if (hasClass(el, className)) {
-                    callback(el);
-                }
-            });
+        var self = this;
+        return this.length && (function() {
+                var hasIt = false;
+                self.each(function(el) {
+                    if (hasClass(el, className)) {
+                        hasIt = true;
+                        if (callback) callback(el);
+                    }
+                });
+                return hasIt;
+            })();
     },
 
     /**
@@ -188,7 +200,7 @@ xui.extend({
         } else {
             var re = getClassRegEx(className);
             this.each(function(el) {
-                el.className = el.className.replace(re, '');
+                el.className = trim(el.className.replace(re, '$1'));
             });
         }
         return this;
@@ -227,20 +239,6 @@ xui.extend({
 // --
 });
 
-function getStyle(el, p) {
-    // this *can* be written to be smaller - see below, but in fact it doesn't compress in gzip as well, the commented
-    // out version actually *adds* 2 bytes.
-    // return document.defaultView.getComputedStyle(el, "").getPropertyValue(p.replace(/([A-Z])/g, "-$1").toLowerCase());
-	if(document.defaultView && document.defaultView.getComputedStyle) //doesn't work with IE Mobile
-		return document.defaultView.getComputedStyle(el, "").getPropertyValue(p.replace(/[A-Z]/g, function(m){ return '-'+m.toLowerCase();}));
-	else if(el.currentStyle){ //alternative for IE Mob
-			p = p.replace(/\-(\w)/g, function (s, p1){
-			return p1.toUpperCase();
-		});
-		return el.currentStyle[p];
-	}
-}
-
 // RS: now that I've moved these out, they'll compress better, however, do these variables
 // need to be instance based - if it's regarding the DOM, I'm guessing it's better they're
 // global within the scope of xui
@@ -250,7 +248,8 @@ var reClassNameCache = {},
     getClassRegEx = function(className) {
         var re = reClassNameCache[className];
         if (!re) {
-            re = new RegExp('(?:^|\\s+)' + className + '(?:\\s+|$)');
+            // Preserve any leading whitespace in the match, to be used when removing a class
+            re = new RegExp('(^|\\s+)' + className + '(?:\\s+|$)');
             reClassNameCache[className] = re;
         }
         return re;
